@@ -7,52 +7,77 @@ class FletView:
         self.page = page
         self.controller = UserController()
 
-        # Campos de entrada
-        self.name_field = ft.TextField(label="Nombre")
-        self.dni_field = ft.TextField(label="DNI", keyboard_type="number")
-        self.email_field = ft.TextField(label="Email")
-        self.phone_field = ft.TextField(label="Teléfono", hint_text="Ingresa tu teléfono", keyboard_type="phone")
+        self.page.title = "Gestión de Usuarios"
+        self.page.scroll = "auto"
+        self.page.padding = 20
+        self.page.vertical_alignment = ft.MainAxisAlignment.START
 
-        # Buscador
-        self.search_field = ft.TextField(
-            label="Buscar usuario",
-            hint_text="Buscar por nombre, DNI, email o teléfono",
-            on_change=self.search_users
-        )
+        # === Campos de entrada ===
+        self.name_field = ft.TextField(label="Nombre", expand=True)
+        self.dni_field = ft.TextField(label="DNI", keyboard_type="number", expand=True)
+        self.email_field = ft.TextField(label="Email", expand=True)
+        self.phone_field = ft.TextField(label="Teléfono", keyboard_type="phone", expand=True)
 
-        # Selección de imagen
+        self.photo_path = None
+        self.photo_preview = ft.Image(width=100, height=100, fit=ft.ImageFit.COVER)
+
         self.file_picker = ft.FilePicker(on_result=self.file_picker_result)
         self.page.overlay.append(self.file_picker)
 
-        self.photo_path = None
+        self.photo_button = ft.IconButton(icon=ft.icons.IMAGE, tooltip="Seleccionar Foto", on_click=self.open_file_picker)
+        self.photo_button_web = ft.IconButton(icon=ft.icons.CAMERA_ALT, tooltip="Tomar con webcam", on_click=self.capture_photo_from_webcam)
 
-        self.photo_button = ft.ElevatedButton("Seleccionar Foto", on_click=self.open_file_picker)
-        self.photo_button_web = ft.ElevatedButton("Tomar foto con webcam", on_click=self.capture_photo_from_webcam)
-        self.photo_preview = ft.Image(width=100, height=100)
-
-        self.user_list = ft.Column()
-        self.selected_user_id = None
-
-        self.page.title = "CRUD Flet MVC"
-        self.page.scroll = "auto"
-
-        # Construcción UI
-        self.refresh_user_list()
-        self.page.add(
-            self.name_field,
-            self.dni_field,
-            self.email_field,
-            self.phone_field,
-            ft.Row([self.photo_button, self.photo_preview, self.photo_button_web]),
-            ft.Row([
-                ft.ElevatedButton("Crear", on_click=self.create_user),
-                ft.ElevatedButton("Actualizar", on_click=self.update_user),
-            ]),
-            self.search_field,  # Buscador aquí
-            ft.Text("Usuarios:"),
-            self.user_list
+        self.search_field = ft.TextField(
+            label="Buscar usuario...",
+            hint_text="Nombre, DNI, Email, Teléfono",
+            prefix_icon=ft.icons.SEARCH,
+            on_change=self.search_users,
+            expand=True
         )
 
+        self.selected_user_id = None
+        self.user_list = ft.Column(spacing=10)
+
+        self.page.add(
+            ft.ResponsiveRow([
+                ft.Container(
+                    content=ft.Card(
+                        content=ft.Container(
+                            content=ft.Column([
+                                ft.Text("Formulario de Usuario", style=ft.TextThemeStyle.TITLE_MEDIUM),
+                                self.name_field,
+                                self.dni_field,
+                                self.email_field,
+                                self.phone_field,
+                                ft.Row([
+                                    self.photo_button,
+                                    self.photo_button_web,
+                                    self.photo_preview
+                                ], alignment=ft.MainAxisAlignment.START),
+                                ft.Row([
+                                    ft.ElevatedButton("Crear", icon=ft.icons.ADD, on_click=self.create_user),
+                                    ft.ElevatedButton("Actualizar", icon=ft.icons.SAVE, on_click=self.update_user),
+                                ], alignment=ft.MainAxisAlignment.END)
+                            ]),
+                            padding=20
+                        )
+                    ),
+                    col={"xs": 12, "md": 5}
+                ),
+                ft.Container(
+                    content=ft.Column([
+                        self.search_field,
+                        ft.Text("Usuarios Registrados", style=ft.TextThemeStyle.TITLE_MEDIUM),
+                        self.user_list
+                    ]),
+                    col={"xs": 12, "md": 7}
+                )
+            ])
+        )
+
+        self.refresh_user_list()
+
+    # === Funcionalidad ===
     def open_file_picker(self, e):
         self.file_picker.pick_files(allow_multiple=False, allowed_extensions=["png", "jpg", "jpeg"])
 
@@ -107,13 +132,21 @@ class FletView:
     def display_user_list(self, users):
         self.user_list.controls.clear()
         for user in users:
-            row = ft.Row([
-                ft.Image(src=user.photo or "", width=50, height=50),
-                ft.Text(f"{user.id}. {user.name} - {user.dni} - {user.email} - {user.phone}"),
-                ft.IconButton(icon=ft.icons.EDIT, on_click=lambda e, u=user: self.select_user(e, u)),
-                ft.IconButton(icon=ft.icons.DELETE, on_click=lambda e, uid=user.id: self.delete_user(e, uid))
-            ])
-            self.user_list.controls.append(row)
+            user_card = ft.Card(
+                content=ft.Container(
+                    content=ft.Row([
+                        ft.Image(src=user.photo or "", width=50, height=50, border_radius=5),
+                        ft.Column([
+                            ft.Text(f"{user.name}", weight="bold"),
+                            ft.Text(f"DNI: {user.dni} | Email: {user.email} | Tel: {user.phone}", size=12),
+                        ], expand=True),
+                        ft.IconButton(icon=ft.icons.EDIT, tooltip="Editar", on_click=lambda e, u=user: self.select_user(e, u)),
+                        ft.IconButton(icon=ft.icons.DELETE, tooltip="Eliminar", on_click=lambda e, uid=user.id: self.delete_user(e, uid)),
+                    ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                    padding=10
+                )
+            )
+            self.user_list.controls.append(user_card)
         self.page.update()
 
     def search_users(self, e):
