@@ -1,6 +1,6 @@
 import flet as ft
 from controller.user_controller import UserController
-
+from utils.opencv_photo import capture_face_photo  # Ajusta ruta según tu proyecto
 
 class FletView:
     def __init__(self, page: ft.Page):
@@ -9,6 +9,17 @@ class FletView:
 
         self.name_field = ft.TextField(label="Nombre")
         self.email_field = ft.TextField(label="Email")
+        
+
+        self.file_picker = ft.FilePicker(on_result=self.file_picker_result)
+        self.page.overlay.append(self.file_picker)
+
+        self.photo_path = None  
+
+        self.photo_button = ft.ElevatedButton("Seleccionar Foto", on_click=self.open_file_picker)
+        self.photo_button_web = ft.ElevatedButton("Tomar foto con webcam", on_click=self.capture_photo_from_webcam)
+        self.photo_preview = ft.Image(width=100, height=100)
+
         self.user_list = ft.Column()
         self.selected_user_id = None
 
@@ -19,6 +30,7 @@ class FletView:
         self.page.add(
             self.name_field,
             self.email_field,
+            ft.Row([self.photo_button, self.photo_preview, self.photo_button_web]),
             ft.Row([
                 ft.ElevatedButton("Crear", on_click=self.create_user),
                 ft.ElevatedButton("Actualizar", on_click=self.update_user),
@@ -27,13 +39,26 @@ class FletView:
             self.user_list
         )
 
+    def open_file_picker(self, e):
+        self.file_picker.pick_files(allow_multiple=False, allowed_extensions=["png", "jpg", "jpeg"])
+
+    def file_picker_result(self, e: ft.FilePickerResultEvent):
+        if e.files:
+            file = e.files[0]
+            self.photo_path = file.path
+            self.photo_preview.src = self.photo_path
+            self.page.update()
+
     def create_user(self, e):
         name = self.name_field.value
         email = self.email_field.value
+        photo = self.photo_path
         if name and email:
-            self.controller.create_user(name, email)
+            self.controller.create_user(name, email, photo)
             self.name_field.value = ""
             self.email_field.value = ""
+            self.photo_path = None
+            self.photo_preview.src = None
             self.refresh_user_list()
             self.page.update()
 
@@ -41,10 +66,13 @@ class FletView:
         if self.selected_user_id:
             name = self.name_field.value
             email = self.email_field.value
-            self.controller.update_user(self.selected_user_id, name, email)
+            photo = self.photo_path
+            self.controller.update_user(self.selected_user_id, name, email, photo)
             self.selected_user_id = None
             self.name_field.value = ""
             self.email_field.value = ""
+            self.photo_path = None
+            self.photo_preview.src = None
             self.refresh_user_list()
             self.page.update()
 
@@ -57,14 +85,26 @@ class FletView:
         self.selected_user_id = user.id
         self.name_field.value = user.name
         self.email_field.value = user.email
+        self.photo_path = user.photo
+        self.photo_preview.src = self.photo_path
         self.page.update()
 
     def refresh_user_list(self):
         self.user_list.controls.clear()
         for user in self.controller.get_users():
             row = ft.Row([
+                ft.Image(src=user.photo or "", width=50, height=50),  # Mostrar foto si existe
                 ft.Text(f"{user.id}. {user.name} - {user.email}"),
                 ft.IconButton(icon=ft.icons.EDIT, on_click=lambda e, u=user: self.select_user(e, u)),
                 ft.IconButton(icon=ft.icons.DELETE, on_click=lambda e, uid=user.id: self.delete_user(e, uid))
             ])
             self.user_list.controls.append(row)
+
+    def capture_photo_from_webcam(self, e):
+        photo_path = capture_face_photo()
+        if photo_path:
+            self.photo_path = photo_path
+            self.photo_preview.src = photo_path
+            self.page.update()
+        else:
+            print("No se capturó una imagen válida desde la webcam.")
