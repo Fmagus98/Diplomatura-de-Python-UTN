@@ -1,6 +1,7 @@
 import flet as ft
 from controller.user_controller import UserController
-from utils.opencv_photo import capture_face_photo  # Ajusta la ruta si es necesario
+from utils.opencv_photo import capture_face_photo
+from ..utils.regex import validate_name, validate_dni, validate_phone, validate_email
 
 class FletView:
     def __init__(self, page: ft.Page):
@@ -94,10 +95,24 @@ class FletView:
         phone = self.phone_field.value
         email = self.email_field.value
         photo = self.photo_path
-        if name and email:
+        if not validate_name(name):
+            print("❌ Nombre inválido")
+            return
+        if not validate_dni(dni):
+            print("❌ DNI inválido")
+            return
+        if not validate_phone(phone):
+            print("❌ Teléfono inválido")
+            return
+        if not validate_email(email):
+            print("❌ Email inválido")
+            return
+    
+        if validate_email(email) and validate_name(name) and validate_dni(dni) and validate_phone(phone):
             self.controller.create_user(name, dni, email, phone, photo)
             self.clear_fields()
             self.refresh_user_list()
+        
 
     def update_user(self, e):
         if self.selected_user_id:

@@ -58,9 +58,9 @@ def capture_face_photo():
         else:
             cv2.putText(frame, "No se detecta cara", (10,30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0,0,255), 2)
 
-        alpha = 0.3  # Transparencia del overlay
+        # UI de la camara
+        alpha = 0.3
 
-        # Cargar la imagen overlay
         overlay = cv2.imread("utils/img/captura_centrada.png", cv2.IMREAD_UNCHANGED)
 
         # Redimensionar overlay a 1/3 del tamaño del frame
