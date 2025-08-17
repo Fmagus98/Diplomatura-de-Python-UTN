@@ -1,56 +1,72 @@
-import sqlite3
-from model.user import User
+from peewee import SqliteDatabase, Model, CharField, AutoField
+from model.user import User  # tu clase de dominio (si la usás aparte)
+
+# Conexión a la base de datos
+db = SqliteDatabase("users.db")
+
+# Definimos el modelo ORM
+class UserModel(Model):
+    id = AutoField()
+    name = CharField()
+    dni = CharField()
+    email = CharField()
+    phone = CharField()
+    photo = CharField(null=True)  # permite valores NULL
+
+    class Meta:
+        database = db
+        table_name = "users"
+
+# Crear la tabla (si no existe)
+db.connect()
+db.create_tables([UserModel])
+
 
 class UserStorage:
-    def __init__(self, db_path='users.db'):
-        self.conn = sqlite3.connect(db_path)
-        self.conn.row_factory = sqlite3.Row
-        self._create_table()
-
-    def _create_table(self):
-        with self.conn:
-            self.conn.execute('''
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL,
-                    dni TEXT NOT NULL,
-                    email TEXT NOT NULL,
-                    phone TEXT NOT NULL,
-                    photo TEXT
-                )
-            ''')
+    def __init__(self):
+        pass  # ya no necesitamos manejar sqlite3 manualmente
 
     def create_user(self, name, dni, email, phone, photo=None):
-        with self.conn:
-            cursor = self.conn.execute('''
-                INSERT INTO users (name, dni, email, phone, photo)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (name, dni, email, phone, photo))
-            user_id = cursor.lastrowid
-            return User(user_id, name, dni, email, phone, photo)
+        user_model = UserModel.create(
+            name=name,
+            dni=dni,
+            email=email,
+            phone=phone,
+            photo=photo
+        )
+        return User(
+            user_model.id,
+            user_model.name,
+            user_model.dni,
+            user_model.email,
+            user_model.phone,
+            user_model.photo
+        )
 
     def get_all_users(self):
-        cursor = self.conn.execute('SELECT * FROM users')
-        rows = cursor.fetchall()
-        return [User(row['id'], row['name'], row['dni'], row['email'], row['phone'], row['photo']) for row in rows]
-
-    def update_user(self, user_id, name, dni, email, phone, photo=None):
-        with self.conn:
-            self.conn.execute('''
-                UPDATE users
-                SET name = ?, dni = ?, email = ?, phone = ?, photo = ?
-                WHERE id = ?
-            ''', (name, dni, email, phone, photo, user_id))
-            return self.get_user_by_id(user_id)
+        return [
+            User(u.id, u.name, u.dni, u.email, u.phone, u.photo)
+            for u in UserModel.select()
+        ]
 
     def get_user_by_id(self, user_id):
-        cursor = self.conn.execute('SELECT * FROM users WHERE id = ?', (user_id,))
-        row = cursor.fetchone()
-        if row:
-            return User(row['id'], row['name'], row['dni'], row['email'], row['phone'], row['photo'])
-        return None
+        try:
+            u = UserModel.get(UserModel.id == user_id)
+            return User(u.id, u.name, u.dni, u.email, u.phone, u.photo)
+        except UserModel.DoesNotExist:
+            return None
+
+    def update_user(self, user_id, name, dni, email, phone, photo=None):
+        query = UserModel.update(
+            name=name,
+            dni=dni,
+            email=email,
+            phone=phone,
+            photo=photo
+        ).where(UserModel.id == user_id)
+        query.execute()
+        return self.get_user_by_id(user_id)
 
     def delete_user(self, user_id):
-        with self.conn:
-            cursor = self.conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
-            return cursor.rowcount > 0
+        deleted = UserModel.delete().where(UserModel.id == user_id).execute()
+        return deleted > 0
