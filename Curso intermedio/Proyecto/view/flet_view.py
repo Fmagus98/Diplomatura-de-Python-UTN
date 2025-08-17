@@ -1,7 +1,8 @@
 import flet as ft
 from controller.user_controller import UserController
 from utils.opencv_photo import capture_face_photo
-from ..utils.regex import validate_name, validate_dni, validate_phone, validate_email
+from utils.regex import validate_name, validate_dni, validate_phone, validate_email
+from utils.snackbar import show_snackbar
 
 class FletView:
     def __init__(self, page: ft.Page):
@@ -19,8 +20,8 @@ class FletView:
         self.email_field = ft.TextField(label="Email", expand=True)
         self.phone_field = ft.TextField(label="Teléfono", keyboard_type="phone", expand=True)
 
-        self.photo_path = None
-        self.photo_preview = ft.Image(width=100, height=100, fit=ft.ImageFit.COVER)
+        self.photo_path = "utils/img/captura_centrada.png"
+        self.photo_preview = ft.Image(src="utils/img/captura_centrada.png", width=100, height=100, fit=ft.ImageFit.COVER)
 
         self.file_picker = ft.FilePicker(on_result=self.file_picker_result)
         self.page.overlay.append(self.file_picker)
@@ -95,25 +96,27 @@ class FletView:
         phone = self.phone_field.value
         email = self.email_field.value
         photo = self.photo_path
+        if not photo:
+            photo = "utils/img/captura_centrada.png"
+        
         if not validate_name(name):
-            print("❌ Nombre inválido")
+            show_snackbar(self.page, message="El nombre es inválido")
             return
         if not validate_dni(dni):
-            print("❌ DNI inválido")
-            return
-        if not validate_phone(phone):
-            print("❌ Teléfono inválido")
+            show_snackbar(self.page, "El DNI es inválido. Debe contener sólo números (8 dígitos).")
             return
         if not validate_email(email):
-            print("❌ Email inválido")
+            show_snackbar(self.page, "El email es inválido. Ejemplo: usuario@gmail.com")
             return
-    
-        if validate_email(email) and validate_name(name) and validate_dni(dni) and validate_phone(phone):
-            self.controller.create_user(name, dni, email, phone, photo)
-            self.clear_fields()
-            self.refresh_user_list()
+        if not validate_phone(phone):
+            show_snackbar(self.page, "El teléfono es inválido. Debe contener solo números (10 a 13 dígitos)")
+            return
         
-
+        self.controller.create_user(name, dni, email, phone, photo)
+        self.clear_fields()
+        self.refresh_user_list()
+        show_snackbar(self.page, "Usuario creado correctamente", color=ft.colors.GREEN_400)
+        
     def update_user(self, e):
         if self.selected_user_id:
             name = self.name_field.value
@@ -121,14 +124,30 @@ class FletView:
             email = self.email_field.value
             phone = self.phone_field.value
             photo = self.photo_path
+            
+            if not validate_name(name):
+                show_snackbar(self.page, message="El nombre es inválido")
+                return
+            if not validate_dni(dni):
+                show_snackbar(self.page, "El DNI es inválido. Debe contener sólo números (8 dígitos).")
+                return
+            if not validate_email(email):
+                show_snackbar(self.page, "El email es inválido. Ejemplo: usuario@gmail.com")
+                return
+            if not validate_phone(phone):
+                show_snackbar(self.page, "El teléfono es inválido. Debe contener solo números (10 a 13 dígitos)")
+                return
+        
             self.controller.update_user(self.selected_user_id, name, dni, email, phone, photo)
             self.selected_user_id = None
             self.clear_fields()
             self.refresh_user_list()
+            show_snackbar(self.page, "Usuario actualizado", color=ft.colors.BLUE_400)
 
     def delete_user(self, e, user_id):
         self.controller.delete_user(user_id)
         self.refresh_user_list()
+        show_snackbar(self.page, "Usuario eliminado")
 
     def select_user(self, e, user):
         self.selected_user_id = user.id
@@ -162,6 +181,10 @@ class FletView:
                 )
             )
             self.user_list.controls.append(user_card)
+        if len(users)==0:
+            self.user_list.controls.append(ft.Text("No hay usuarios registrados", style=ft.TextThemeStyle.BODY_MEDIUM))
+            self.user_list.update()
+            
         self.page.update()
 
     def search_users(self, e):
@@ -184,8 +207,8 @@ class FletView:
         self.dni_field.value = None
         self.email_field.value = ""
         self.phone_field.value = None
-        self.photo_path = None
-        self.photo_preview.src = None
+        self.photo_path = "utils/img/captura_centrada.png"
+        self.photo_preview.src = self.photo_path
         self.page.update()
 
     def capture_photo_from_webcam(self, e):
@@ -195,4 +218,4 @@ class FletView:
             self.photo_preview.src = photo_path
             self.page.update()
         else:
-            print("No se capturó una imagen válida desde la webcam.")
+            show_snackbar(self.page, "No se capturó una imagen válida desde la webcam.")

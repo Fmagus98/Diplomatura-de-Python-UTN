@@ -1,5 +1,5 @@
 from peewee import SqliteDatabase, Model, CharField, AutoField
-from model.user import User  # tu clase de dominio (si la usás aparte)
+from model.user import User 
 
 # Conexión a la base de datos
 db = SqliteDatabase("users.db")
@@ -11,20 +11,19 @@ class UserModel(Model):
     dni = CharField()
     email = CharField()
     phone = CharField()
-    photo = CharField(null=True)  # permite valores NULL
+    photo = CharField(null=True)
 
     class Meta:
         database = db
         table_name = "users"
 
-# Crear la tabla (si no existe)
 db.connect()
 db.create_tables([UserModel])
 
 
 class UserStorage:
     def __init__(self):
-        pass  # ya no necesitamos manejar sqlite3 manualmente
+        pass  
 
     def create_user(self, name, dni, email, phone, photo=None):
         user_model = UserModel.create(

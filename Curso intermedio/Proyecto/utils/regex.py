@@ -2,8 +2,8 @@ import re
 
 # Expresiones regulares comunes
 NAME_REGEX = re.compile(r"^[A-Za-zÁÉÍÓÚÑáéíóúñ\s]{2,50}$")
-DNI_REGEX = re.compile(r"^\d{7,10}$")  # acepta solo números (7 a 10 dígitos)
-PHONE_REGEX = re.compile(r"^\+?\d{7,15}$")  # números con o sin prefijo internacional
+DNI_REGEX = re.compile(r"^\d{8}$")  # acepta solo números (7 a 10 dígitos)
+PHONE_REGEX = re.compile(r"^\+?\d{10,13}$")  # números
 EMAIL_REGEX = re.compile(r"^[\w\.-]+@[\w\.-]+\.\w+$")
 
 def validate_name(name: str) -> bool:

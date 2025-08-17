@@ -7,7 +7,6 @@ def capture_face_photo():
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        print("No se puede abrir la cámara")
         return None
 
     while True:
@@ -44,7 +43,6 @@ def capture_face_photo():
 
             if centered and smiling:
                 text = "Rostro centrado: Capturando..."
-                print(text)
                 photo_path = "captured.jpg"
                 cv2.imwrite(photo_path, clean_frame)
                 cap.release()
